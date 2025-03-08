@@ -1,20 +1,30 @@
+// Firebase Admin SDK
+const admin = require('../utils/firebase-admin');
+const db = admin.firestore();
+
 // Controller methods
 const userController = {
   // Get user profile
   getUserProfile: async (req, res, next) => {
     try {
-      // This would fetch from database in a real implementation
-      // In a real app, this would use the authenticated user's ID
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
+      
+      // Get user data from Firestore
+      const userDoc = await db.collection('users').doc(uid).get();
+      
+      if (!userDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: 'User profile not found'
+        });
+      }
+      
       res.json({
         success: true,
         data: {
-          id: '123',
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          age: 30,
-          weight: 180,
-          height: 72,
-          createdAt: new Date('2023-01-01')
+          id: userDoc.id,
+          ...userDoc.data()
         }
       });
     } catch (error) {
@@ -25,12 +35,20 @@ const userController = {
   // Update user profile
   updateUserProfile: async (req, res, next) => {
     try {
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
       const userData = req.body;
-      // This would update in database in a real implementation
+      
+      // Update user in Firestore
+      await db.collection('users').doc(uid).update({
+        ...userData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
       res.json({
         success: true,
         data: {
-          id: '123',
+          id: uid,
           ...userData,
           updatedAt: new Date()
         }
@@ -43,24 +61,31 @@ const userController = {
   // Get user preferences
   getUserPreferences: async (req, res, next) => {
     try {
-      // This would fetch from database in a real implementation
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
+      
+      // Get user preferences from Firestore
+      const userDoc = await db.collection('users').doc(uid).get();
+      
+      if (!userDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: 'User profile not found'
+        });
+      }
+      
+      const userData = userDoc.data();
+      
+      // Extract preferences
+      const preferences = {
+        fitnessGoals: userData.fitnessGoals || [],
+        workoutPreferences: userData.workoutPreferences || {},
+        dietaryPreferences: userData.dietaryPreferences || {}
+      };
+      
       res.json({
         success: true,
-        data: {
-          fitnessGoals: ['weight loss', 'muscle gain'],
-          workoutPreferences: {
-            frequency: 3,
-            duration: 45,
-            preferredDays: ['Monday', 'Wednesday', 'Friday'],
-            equipment: ['dumbbells', 'resistance bands']
-          },
-          dietaryPreferences: {
-            diet: 'omnivore',
-            restrictions: ['no peanuts'],
-            allergies: ['peanuts'],
-            dislikedFoods: ['brussels sprouts']
-          }
-        }
+        data: preferences
       });
     } catch (error) {
       next(error);
@@ -70,8 +95,16 @@ const userController = {
   // Update user preferences
   updateUserPreferences: async (req, res, next) => {
     try {
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
       const preferencesData = req.body;
-      // This would update in database in a real implementation
+      
+      // Update user preferences in Firestore
+      await db.collection('users').doc(uid).update({
+        ...preferencesData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
       res.json({
         success: true,
         data: {
@@ -87,29 +120,27 @@ const userController = {
   // Get user progress
   getUserProgress: async (req, res, next) => {
     try {
-      // This would fetch from database in a real implementation
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
+      
+      // Get user progress from Firestore
+      const progressSnapshot = await db.collection('userProgress')
+        .where('userId', '==', uid)
+        .orderBy('date', 'desc')
+        .limit(30)
+        .get();
+      
+      const progressData = [];
+      progressSnapshot.forEach(doc => {
+        progressData.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
       res.json({
         success: true,
-        data: {
-          weightHistory: [
-            { date: new Date('2023-01-01'), value: 185 },
-            { date: new Date('2023-01-08'), value: 183 },
-            { date: new Date('2023-01-15'), value: 181 },
-            { date: new Date('2023-01-22'), value: 180 }
-          ],
-          workoutHistory: [
-            { date: new Date('2023-01-02'), completed: true, duration: 45 },
-            { date: new Date('2023-01-04'), completed: true, duration: 50 },
-            { date: new Date('2023-01-06'), completed: false, duration: 0 },
-            { date: new Date('2023-01-09'), completed: true, duration: 45 }
-          ],
-          mealAdherence: [
-            { date: new Date('2023-01-01'), adherence: 90 },
-            { date: new Date('2023-01-02'), adherence: 85 },
-            { date: new Date('2023-01-03'), adherence: 95 },
-            { date: new Date('2023-01-04'), adherence: 80 }
-          ]
-        }
+        data: progressData
       });
     } catch (error) {
       next(error);
@@ -119,13 +150,25 @@ const userController = {
   // Update user progress
   updateUserProgress: async (req, res, next) => {
     try {
+      // Get authenticated user ID from middleware
+      const { uid } = req.user;
       const progressData = req.body;
-      // This would update in database in a real implementation
+      
+      // Add user progress to Firestore
+      const progressRef = await db.collection('userProgress').add({
+        userId: uid,
+        ...progressData,
+        date: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // Get the newly created document
+      const newProgressDoc = await progressRef.get();
+      
       res.json({
         success: true,
         data: {
-          ...progressData,
-          updatedAt: new Date()
+          id: progressRef.id,
+          ...newProgressDoc.data()
         }
       });
     } catch (error) {

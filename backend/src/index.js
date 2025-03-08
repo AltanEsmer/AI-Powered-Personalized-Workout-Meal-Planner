@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
 
+// Initialize Firebase Admin SDK
+require('./utils/firebase-admin');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
