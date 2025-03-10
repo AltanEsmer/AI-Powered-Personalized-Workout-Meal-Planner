@@ -23,7 +23,7 @@ A comprehensive web application that generates personalized workout routines and
 - Node.js with Express
 - Firebase Authentication
 - Firebase Firestore database
-- OpenAI API for AI-powered plan generation
+- Deepseek API for AI-powered plan generation
 - Stripe for payment processing
 
 ## Project Structure

@@ -2,10 +2,13 @@ import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import { Toaster } from 'react-hot-toast'
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Settings = lazy(() => import('./pages/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Login = lazy(() => import('./components/auth/Login'))
 const Signup = lazy(() => import('./components/auth/Signup'))
@@ -22,6 +25,9 @@ function App() {
   return (
     <AuthProvider>
       <Suspense fallback={<LoadingSpinner />}>
+        {/* Toast notifications */}
+        <Toaster position="top-right" />
+        
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
@@ -32,6 +38,8 @@ function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
             {/* Add more protected routes here */}
           </Route>
           

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Navbar = () => {
@@ -7,6 +7,14 @@ const Navbar = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { currentUser, logOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Close menus when navigating
+  const handleNavigation = (path: string) => {
+    setIsMenuOpen(false);
+    setIsProfileMenuOpen(false);
+    navigate(path);
+  };
 
   const handleLogout = async () => {
     try {
@@ -14,6 +22,25 @@ const Navbar = () => {
       navigate('/login');
     } catch (error) {
       console.error('Failed to log out', error);
+    }
+  };
+
+  // Function to determine if we're on the home page
+  const isHomePage = location.pathname === '/';
+
+  // Function to handle scroll to section if on home page, navigate otherwise
+  const handleSectionNavigation = (sectionId: string) => {
+    setIsMenuOpen(false);
+    
+    if (isHomePage) {
+      // If on home page, scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // If not on home page, navigate to home with hash
+      navigate(`/#${sectionId}`);
     }
   };
 
@@ -42,18 +69,18 @@ const Navbar = () => {
                   Dashboard
                 </Link>
               )}
-              <a
-                href="#features"
+              <button
+                onClick={() => handleSectionNavigation('features')}
                 className="border-transparent text-gray-500 hover:border-primary-500 hover:text-primary-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Features
-              </a>
-              <a
-                href="#pricing"
+              </button>
+              <button
+                onClick={() => handleSectionNavigation('pricing')}
                 className="border-transparent text-gray-500 hover:border-primary-500 hover:text-primary-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
               >
                 Pricing
-              </a>
+              </button>
             </div>
           </div>
           
@@ -87,12 +114,14 @@ const Navbar = () => {
                     <Link
                       to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
                     >
                       Your Profile
                     </Link>
                     <Link
                       to="/settings"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsProfileMenuOpen(false)}
                     >
                       Settings
                     </Link>
@@ -165,6 +194,7 @@ const Navbar = () => {
             <Link
               to="/"
               className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+              onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
@@ -172,22 +202,23 @@ const Navbar = () => {
               <Link
                 to="/dashboard"
                 className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
               </Link>
             )}
-            <a
-              href="#features"
-              className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+            <button
+              onClick={() => handleSectionNavigation('features')}
+              className="w-full text-left border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
             >
               Features
-            </a>
-            <a
-              href="#pricing"
-              className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+            </button>
+            <button
+              onClick={() => handleSectionNavigation('pricing')}
+              className="w-full text-left border-transparent text-gray-500 hover:bg-gray-50 hover:border-primary-500 hover:text-primary-600 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
             >
               Pricing
-            </a>
+            </button>
           </div>
           
           {currentUser ? (
@@ -215,12 +246,14 @@ const Navbar = () => {
                 <Link
                   to="/profile"
                   className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Your Profile
                 </Link>
                 <Link
                   to="/settings"
                   className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Settings
                 </Link>
@@ -238,12 +271,14 @@ const Navbar = () => {
                 <Link
                   to="/login"
                   className="block text-base font-medium text-gray-500 hover:text-primary-600 hover:bg-gray-100 px-4 py-2 rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Log in
                 </Link>
                 <Link
                   to="/signup"
                   className="block text-base font-medium bg-primary-600 text-white hover:bg-primary-700 px-4 py-2 rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Sign up
                 </Link>
