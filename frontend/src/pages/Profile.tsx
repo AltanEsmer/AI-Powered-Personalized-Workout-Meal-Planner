@@ -1,13 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { updateUserProfile, getUserDocument } from '../services/firestore';
 import { toast } from 'react-hot-toast';
 
+interface FormData {
+  displayName: string;
+  email: string;
+  photoURL: string;
+  fitnessGoals: string;
+  activityLevel: string;
+  dietaryRestrictions: string;
+  weight: string;
+  height: string;
+  age: string;
+}
+
+interface UserData {
+  id: string;
+  displayName?: string;
+  email?: string;
+  photoURL?: string;
+  fitnessGoals?: string;
+  activityLevel?: string;
+  dietaryRestrictions?: string;
+  weight?: string;
+  height?: string;
+  age?: string;
+  [key: string]: any; // Allow for other properties
+}
+
 const Profile = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState<FormData>({
     displayName: '',
     email: '',
     photoURL: '',
@@ -18,41 +46,38 @@ const Profile = () => {
     height: '',
     age: '',
   });
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
 
   useEffect(() => {
     // Initialize form with user data
     if (currentUser) {
-      setFormData({
+      setFormData(prevData => ({
+        ...prevData,
         displayName: currentUser.displayName || '',
         email: currentUser.email || '',
         photoURL: currentUser.photoURL || '',
-        fitnessGoals: '',
-        activityLevel: '',
-        dietaryRestrictions: '',
-        weight: '',
-        height: '',
-        age: '',
-      });
+      }));
       
       // Fetch additional user data from Firestore
       const fetchUserData = async () => {
         try {
           const userData = await getUserDocument(currentUser.uid);
           if (userData) {
+            // Type assertion to UserData
+            const typedUserData = userData as UserData;
+            
             setFormData(prevData => ({
               ...prevData,
-              fitnessGoals: userData.fitnessGoals || '',
-              activityLevel: userData.activityLevel || '',
-              dietaryRestrictions: userData.dietaryRestrictions || '',
-              weight: userData.weight || '',
-              height: userData.height || '',
-              age: userData.age || '',
+              fitnessGoals: typedUserData.fitnessGoals || '',
+              activityLevel: typedUserData.activityLevel || '',
+              dietaryRestrictions: typedUserData.dietaryRestrictions || '',
+              weight: typedUserData.weight || '',
+              height: typedUserData.height || '',
+              age: typedUserData.age || '',
             }));
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
+          toast.error('Failed to load profile data. Please refresh the page.');
         }
       };
       
@@ -60,7 +85,7 @@ const Profile = () => {
     }
   }, [currentUser]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prevData => ({
       ...prevData,
@@ -68,10 +93,11 @@ const Profile = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
     
     try {
       if (!currentUser || !currentUser.uid) {
@@ -81,12 +107,21 @@ const Profile = () => {
       // Make sure formData is properly formatted before sending
       const validFormData = { ...formData };
       
+      // Show loading toast
+      const toastId = toast.loading('Updating profile...');
+      
       await updateUserProfile(currentUser.uid, validFormData);
+      
+      // Update toast to success
+      toast.success('Profile updated successfully!', {
+        id: toastId
+      });
+      
       setSuccess('Profile updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error updating profile:', error);
       setError('Failed to update profile. Please try again.');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -96,6 +131,36 @@ const Profile = () => {
     <Layout>
       <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Your Profile</h1>
+        
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-700">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <form onSubmit={handleSubmit}>

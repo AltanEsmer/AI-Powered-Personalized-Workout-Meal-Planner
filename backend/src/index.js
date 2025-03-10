@@ -7,7 +7,7 @@ const routes = require('./routes');
 require('./utils/firebase-admin');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -24,10 +24,7 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({
-    error: true,
-    message: err.message || 'An unexpected error occurred',
-  });
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // Start server

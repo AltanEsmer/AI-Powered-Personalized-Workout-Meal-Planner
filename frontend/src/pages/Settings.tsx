@@ -1,9 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { updateUserSettings, getUserDocument, deleteUserAccount } from '../services/firestore';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+
+interface MealPreferences {
+  calories: string;
+  macroPreferences: string;
+}
+
+interface UserSettings {
+  emailNotifications: boolean;
+  workoutIntensity: string;
+  mealPreferences: MealPreferences;
+  darkMode: boolean;
+  language: string;
+  measurementSystem: string;
+  [key: string]: any; // Allow for other properties
+}
+
+interface UserData {
+  id: string;
+  settings?: UserSettings;
+  [key: string]: any; // Allow for other properties
+}
 
 const Settings = () => {
   const { currentUser, logOut } = useAuth();
@@ -11,7 +32,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<UserSettings>({
     emailNotifications: false,
     workoutIntensity: 'medium',
     mealPreferences: {
@@ -29,14 +50,20 @@ const Settings = () => {
       if (currentUser) {
         try {
           const userData = await getUserDocument(currentUser.uid);
-          if (userData && userData.settings) {
-            setSettings(prevSettings => ({
-              ...prevSettings,
-              ...userData.settings
-            }));
+          if (userData) {
+            // Type assertion
+            const typedUserData = userData as UserData;
+            
+            if (typedUserData.settings) {
+              setSettings(prevSettings => ({
+                ...prevSettings,
+                ...typedUserData.settings
+              }));
+            }
           }
         } catch (error) {
           console.error('Error fetching user settings:', error);
+          toast.error('Failed to load settings. Please refresh the page.');
         }
       }
     };
@@ -44,11 +71,12 @@ const Settings = () => {
     fetchUserSettings();
   }, [currentUser]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
     
     // Handle checkbox inputs
     if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
       setSettings(prevSettings => ({
         ...prevSettings,
         [name]: checked
@@ -76,14 +104,25 @@ const Settings = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      if (!currentUser || !currentUser.uid) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Show loading toast
+      const toastId = toast.loading('Updating settings...');
+      
       // Update user settings in Firestore
       await updateUserSettings(currentUser.uid, settings);
-      toast.success('Settings updated successfully!');
+      
+      // Update toast to success
+      toast.success('Settings updated successfully!', {
+        id: toastId
+      });
     } catch (error) {
       console.error('Error updating settings:', error);
       toast.error('Failed to update settings. Please try again.');
@@ -93,6 +132,11 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
+    if (!currentUser || !currentUser.email) {
+      toast.error('User information not available');
+      return;
+    }
+    
     if (deleteConfirmation !== currentUser.email) {
       toast.error('Email does not match. Account deletion cancelled.');
       return;
@@ -100,9 +144,17 @@ const Settings = () => {
     
     setLoading(true);
     try {
+      // Show loading toast
+      const toastId = toast.loading('Deleting account...');
+      
       await deleteUserAccount(currentUser);
       await logOut();
-      toast.success('Your account has been deleted.');
+      
+      // Update toast to success
+      toast.success('Your account has been deleted.', {
+        id: toastId
+      });
+      
       navigate('/');
     } catch (error) {
       console.error('Error deleting account:', error);

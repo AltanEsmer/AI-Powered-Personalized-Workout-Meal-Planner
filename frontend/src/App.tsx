@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
-import { Toaster } from 'react-hot-toast'
 
 // Lazy load pages for better performance
 const Home = lazy(() => import('./pages/Home'))
@@ -25,9 +24,6 @@ function App() {
   return (
     <AuthProvider>
       <Suspense fallback={<LoadingSpinner />}>
-        {/* Toast notifications */}
-        <Toaster position="top-right" />
-        
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
